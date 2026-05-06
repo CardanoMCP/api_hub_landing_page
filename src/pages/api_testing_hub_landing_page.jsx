@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -28,6 +29,7 @@ const LINKEDIN_URL = "https://linkedin.com/in/huỳnh-nguyễn-huy-anh";
 const EMAIL = "huynhnguyenhuyanh.work@gmail.com";
 
 const navItems = ["Home", "Platform", "Workflow", "Architecture", "Contact"];
+const sectionIds = ["home", "platform", "workflow", "architecture", "contact"];
 
 const panelClass =
   "interactive-panel relative overflow-visible rounded-[2rem] border border-white/10 bg-[#001d31]/55 backdrop-blur-[2px]";
@@ -190,10 +192,81 @@ function CTAButton({ children, href, variant = "primary" }) {
 }
 
 function Header() {
+  const [activeSection, setActiveSection] = useState("home");
+
+  useEffect(() => {
+    let ticking = false;
+
+    const updateActiveSection = () => {
+      const scrollPosition = window.scrollY + 150;
+      const bottomReached =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 80;
+
+      if (bottomReached) {
+        setActiveSection("contact");
+        ticking = false;
+        return;
+      }
+
+      let currentSection = "home";
+
+      for (const id of sectionIds) {
+        const section = document.getElementById(id);
+        if (!section) continue;
+
+        const sectionTop = section.offsetTop;
+        if (scrollPosition >= sectionTop) {
+          currentSection = id;
+        }
+      }
+
+      setActiveSection(currentSection);
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateActiveSection);
+        ticking = true;
+      }
+    };
+
+    updateActiveSection();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", updateActiveSection);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", updateActiveSection);
+    };
+  }, []);
+
+  const getSectionId = (item) =>
+    item.toLowerCase() === "home" ? "home" : item.toLowerCase();
+
+  const handleNavClick = (event, sectionId) => {
+    event.preventDefault();
+    setActiveSection(sectionId);
+
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+
+    section.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+
+    window.history.replaceState(null, "", `#${sectionId}`);
+  };
+
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/[0.06] bg-[#00253d]/35 backdrop-blur-2xl">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-8">
-        <a href="#home" className="flex items-center gap-3">
+        <a
+          href="#home"
+          onClick={(event) => handleNavClick(event, "home")}
+          className="flex items-center gap-3"
+        >
           <div className="liquid-glass flex h-11 w-11 items-center justify-center rounded-2xl p-2 transition duration-300 hover:scale-[1.06]">
             <img
               src={LOGO_SRC}
@@ -216,17 +289,29 @@ function Header() {
         </a>
 
         <div className="hidden items-center gap-8 md:flex">
-          {navItems.map((item, index) => (
-            <a
-              key={item}
-              href={`#${item.toLowerCase() === "home" ? "home" : item.toLowerCase()}`}
-              className={`text-sm transition-colors hover:text-white ${
-                index === 0 ? "text-white" : "text-white/55"
-              }`}
-            >
-              {item}
-            </a>
-          ))}
+          {navItems.map((item) => {
+            const sectionId = getSectionId(item);
+            const isActive = activeSection === sectionId;
+
+            return (
+              <a
+                key={item}
+                href={`#${sectionId}`}
+                onClick={(event) => handleNavClick(event, sectionId)}
+                className={`relative text-sm transition-all duration-300 hover:text-white ${
+                  isActive ? "text-white" : "text-white/55"
+                }`}
+              >
+                {item}
+
+                <span
+                  className={`absolute -bottom-2 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-cyan-200 shadow-[0_0_12px_rgba(103,232,249,0.9)] transition-all duration-300 ${
+                    isActive ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                  }`}
+                />
+              </a>
+            );
+          })}
         </div>
 
         <a
@@ -847,6 +932,10 @@ export default function APITestingHubLandingPage() {
           font-family: var(--font-body);
           background: hsl(var(--background));
           color: hsl(var(--foreground));
+        }
+
+        section[id] {
+          scroll-margin-top: 96px;
         }
 
         .liquid-glass {
